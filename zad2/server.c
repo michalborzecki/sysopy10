@@ -9,13 +9,14 @@
 #include <errno.h>
 #include "main.h"
 
-#define MAX_CLIENTS 2
-#define CONNECTION_TIMEOUT 30
+#define MAX_CLIENTS 10
+#define CONNECTION_TIMEOUT 15
 
 struct Client {
     int sock;
     char username[MAX_USERNAME_LEN + 1];
     struct timeval last_msg_time;
+    int sent;
 };
 
 
@@ -55,6 +56,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < MAX_CLIENTS; i++) {
         clients[i].sock = -1;
         clients[i].username[0] = '\0';
+        clients[i].sent = 0;
     }
 
     unlink(socket_unix_path);
@@ -140,6 +142,7 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             struct Message msg;
+            clients[i].sent = 1;
             if(recv(clients[i].sock, &msg, sizeof(msg), 0) <= 0) {
                 printf("%s disconnected\n", clients[i].username);
                 strcpy(msg.username, clients[i].username);
@@ -177,6 +180,7 @@ void disconnect_client(int index) {
     close(clients[index].sock);
     clients[index].sock = -1;
     clients[index].username[0] = '\0';
+    clients[index].sent = 0;
     clients_connected--;
 }
 
@@ -232,7 +236,7 @@ void sigalrm_handler(int signum) {
     struct timeval t;
     gettimeofday(&t, NULL);
     for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (clients[i].sock != -1 && clients[i].last_msg_time.tv_sec + CONNECTION_TIMEOUT < t.tv_sec) {
+        if (clients[i].sock != -1 && clients[i].sent == 0 && clients[i].last_msg_time.tv_sec + CONNECTION_TIMEOUT < t.tv_sec) {
             disconnect_client(i);
             printf("client deleted\n");
         }

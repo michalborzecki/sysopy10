@@ -10,7 +10,7 @@
 #include "main.h"
 
 #define MAX_CLIENTS 10
-#define CONNECTION_TIMEOUT 30
+#define CONNECTION_TIMEOUT 15
 
 struct Client {
     int sock;
@@ -27,7 +27,7 @@ int prepare_unix_socket(const char *path);
 int prepare_internet_socket(int port);
 void sigint_handler(int signum);
 void cleanup();
-void broadcast(struct Message msg, int sock);
+void broadcast(struct Message msg);
 void disconnect_client(int index);
 
 char *socket_unix_path;
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
         clients[index].last_msg_time = msg_time;
         clients[index].address = addr;
         clients[index].address_len = sa_len;
-        broadcast(msg, 0);
+        broadcast(msg);
     }
 }
 
@@ -164,13 +164,17 @@ int read_args(int argc, char *argv[], int *port, char **socket_unix_path) {
 }
 
 void disconnect_client(int index) {
+    struct Message msg;
+    strcpy(msg.username, clients[index].username);
+    strcpy(msg.message, "Disconnected\n");
+    broadcast(msg);
     clients[index].address_len = 0;
     clients[index].sock = -1;
     clients[index].username[0] = '\0';
     clients_connected--;
 }
 
-void broadcast(struct Message msg, int sock) {
+void broadcast(struct Message msg) {
     for (int j = 0; j < MAX_CLIENTS; j++) {
         if (strlen(clients[j].username) == 0 || strcmp(clients[j].username, msg.username) == 0)
             continue;

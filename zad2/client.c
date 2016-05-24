@@ -75,9 +75,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    strcpy(msg.message, "Connected\n");
-    is_message_to_send = 1;
-    kill(getpid(), SIGUSR1);
+    //strcpy(msg.message, "Connected\n");
+    //is_message_to_send = 1;
+    //kill(getpid(), SIGUSR1);
 
     if (pthread_create(&input_thread_id, NULL, input_thread, NULL) != 0) {
         printf("Error while creating input thread occurred.\n");
